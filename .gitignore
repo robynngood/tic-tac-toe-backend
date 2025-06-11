@@ -1,0 +1,7 @@
+.env
+node_modules
+npm-debug.log* yarn-debug.log* yarn-error.log* *.log
+dist/ build/
+.vscode/ .idea/ *.suo .ntvs*.njsproj *.sln *.swp
+.DS_Store Thumbs.db
+*.tmp *.temp *.bak 
