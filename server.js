@@ -61,5 +61,5 @@ setupSocket(server);   // Bind socket to the http server
 // Server Start
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
