@@ -1,21 +1,8 @@
 const User = require("../models/userModel");
 const axios = require("axios").default; // For fetching images
-const { createClient } = require("redis");
 
-// Initialize Redis client
-const redisClient = createClient({
-  url: process.env.REDIS_URL, // Use Upstash Redis URL
-  socket: {
-    reconnectStrategy: retries => Math.min(retries * 100, 5000) // Retry with exponential backoff, max 5 seconds
-  }
-});
-
-redisClient.on("error", (err) => console.error("Redis Client Error:", err));
-
-// Connect to Redis
-(async () => {
-  await redisClient.connect();
-})();
+// In-memory cache for avatars
+const avatarCache = new Map();
 
 exports.getMe = (req, res) => {
   if (!req.user) {
@@ -50,11 +37,11 @@ exports.getUserAvatar = async (req, res) => {
 
     const cacheKey = `avatar_${req.params.id}`;
     
-    // Check Redis cache
-    const cachedImage = await redisClient.get(cacheKey);
-    if (cachedImage) {
+    // Check in-memory cache
+    const cachedImage = avatarCache.get(cacheKey);
+    if (cachedImage && cachedImage.expiry > Date.now()) {
       console.log(`Cache hit for ${cacheKey}`);
-      const { data, contentType } = JSON.parse(cachedImage);
+      const { data, contentType } = cachedImage;
       res.set("Content-Type", contentType);
       return res.send(Buffer.from(data, "base64"));
     }
@@ -69,15 +56,12 @@ exports.getUserAvatar = async (req, res) => {
     const imageBuffer = Buffer.from(response.data);
     const contentType = response.headers["content-type"] || "image/jpeg";
 
-    // Cache the image in Redis (store as base64 to simplify serialization)
-    await redisClient.setEx(
-      cacheKey,
-      86400, // TTL of 24 hours
-      JSON.stringify({
-        data: imageBuffer.toString("base64"),
-        contentType,
-      })
-    );
+    // Cache the image in memory (store as base64, with 24-hour TTL)
+    avatarCache.set(cacheKey, {
+      data: imageBuffer.toString("base64"),
+      contentType,
+      expiry: Date.now() + 86400 * 1000 // 24 hours in milliseconds
+    });
 
     // Send the image
     res.set("Content-Type", contentType);
@@ -87,9 +71,3 @@ exports.getUserAvatar = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch avatar" });
   }
 };
-
-// Cleanup Redis connection on server shutdown
-process.on("SIGTERM", async () => {
-  await redisClient.quit();
-  console.log("Redis connection closed");
-});
