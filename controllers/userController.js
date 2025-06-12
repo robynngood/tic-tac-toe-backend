@@ -5,6 +5,9 @@ const { createClient } = require("redis");
 // Initialize Redis client
 const redisClient = createClient({
   url: process.env.REDIS_URL, // Use Upstash Redis URL
+  socket: {
+    reconnectStrategy: retries => Math.min(retries * 100, 5000) // Retry with exponential backoff, max 5 seconds
+  }
 });
 
 redisClient.on("error", (err) => console.error("Redis Client Error:", err));
