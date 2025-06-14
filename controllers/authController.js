@@ -13,7 +13,7 @@ const jwt = require("jsonwebtoken");
       { expiresIn: "7d" }
     );
   
-    const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+    const FRONTEND_URL = process.env.FRONTEND_URL || "https://play-tic-tac-toe-blond.vercel.app";
 
     
     res.redirect(`${FRONTEND_URL}/home?token=${token}`);
